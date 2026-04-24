@@ -1,6 +1,8 @@
 # review-prompt.nvim
 
-Collect code review comments while reading a diff, then export them as a single AI-ready prompt. Zero dependencies — works out of the box, and plays nicely with UI plugins like [dressing.nvim](https://github.com/stevearc/dressing.nvim) or [snacks.nvim](https://github.com/folke/snacks.nvim) that override `vim.ui.select`.
+Collect code review comments while reading a diff, then export them as a single AI-ready prompt. Zero dependencies.
+
+https://github.com/user-attachments/assets/5ec849bb-c1c2-42a7-99da-6bef9480478c
 
 ## Features
 
