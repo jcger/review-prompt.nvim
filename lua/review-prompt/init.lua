@@ -2,11 +2,11 @@ local M = {}
 
 local function load_modules()
   return {
-    config  = require("review-prompt.config"),
-    state   = require("review-prompt.state"),
+    config = require("review-prompt.config"),
+    state = require("review-prompt.state"),
     persist = require("review-prompt.persist"),
-    marks   = require("review-prompt.marks"),
-    core    = require("review-prompt.core"),
+    marks = require("review-prompt.marks"),
+    core = require("review-prompt.core"),
   }
 end
 
@@ -34,9 +34,9 @@ function M.setup(opts)
     end
   end
 
-  vim.api.nvim_create_autocmd("VimEnter",  { group = aug, once = true, callback = reload })
+  vim.api.nvim_create_autocmd("VimEnter", { group = aug, once = true, callback = reload })
   vim.api.nvim_create_autocmd("VimResume", { group = aug, callback = reload })
-  vim.api.nvim_create_autocmd("BufEnter",  {
+  vim.api.nvim_create_autocmd("BufEnter", {
     group = aug,
     callback = function(ev)
       m.marks.replay_for_buf(ev.buf, m.state.comments)
@@ -49,13 +49,25 @@ function M.setup(opts)
     end
   end
 
-  map({ "n", "v" }, cfg.keymaps.add,    function() m.core.add_comment(cfg) end,     "Review: Add comment")
-  map("n",          cfg.keymaps.manage,  function() m.core.manage_comments(cfg) end, "Review: Manage comments")
-  map("n",          cfg.keymaps.export,  function() m.core.copy_and_clear(cfg) end,  "Review: Copy as AI prompt")
+  map({ "n", "v" }, cfg.keymaps.add, function()
+    m.core.add_comment(cfg)
+  end, "Review: Add comment")
+  map("n", cfg.keymaps.manage, function()
+    m.core.manage_comments(cfg)
+  end, "Review: Manage comments")
+  map("n", cfg.keymaps.export, function()
+    m.core.copy_and_clear(cfg)
+  end, "Review: Copy as AI prompt")
 end
 
-M.add_comment     = function() require("review-prompt.core").add_comment(require("review-prompt.config").options) end
-M.manage_comments = function() require("review-prompt.core").manage_comments(require("review-prompt.config").options) end
-M.copy_and_clear  = function() require("review-prompt.core").copy_and_clear(require("review-prompt.config").options) end
+M.add_comment = function()
+  require("review-prompt.core").add_comment(require("review-prompt.config").options)
+end
+M.manage_comments = function()
+  require("review-prompt.core").manage_comments(require("review-prompt.config").options)
+end
+M.copy_and_clear = function()
+  require("review-prompt.core").copy_and_clear(require("review-prompt.config").options)
+end
 
 return M

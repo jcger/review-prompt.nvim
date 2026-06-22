@@ -6,8 +6,10 @@ M.defaults = {
     manage = "<leader>rl",
     export = "<leader>ry",
   },
-  data_dir  = vim.fn.stdpath("data") .. "/review-prompt",
-  highlight = "DiagnosticWarn",
+  data_dir      = vim.fn.stdpath("data") .. "/review-prompt",
+  highlight     = "DiagnosticWarn",
+  input_prompt  = "",
+  preamble      = "Notes:",
 }
 
 M.options = vim.deepcopy(M.defaults)

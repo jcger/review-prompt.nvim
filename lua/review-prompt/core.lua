@@ -29,7 +29,7 @@ function M.add_comment(cfg)
     ref = string.format("%s:%d", path, vim.api.nvim_win_get_cursor(0)[1])
   end
 
-  local text = vim.fn.trim(vim.fn.input("Review comment: "))
+  local text = vim.fn.trim(vim.fn.input(cfg.input_prompt))
   if text == "" then return end
 
   table.insert(state.comments, { path = path, ref = ref, text = text })
@@ -44,10 +44,10 @@ function M.copy_and_clear(cfg)
     return
   end
 
-  local lines = { "Please address the following code review comments:", "" }
+  local lines = { cfg.preamble, "" }
   for _, c in ipairs(state.comments) do
     table.insert(lines, c.ref)
-    table.insert(lines, "Comment: " .. c.text)
+    table.insert(lines, c.text)
     table.insert(lines, "")
   end
 
@@ -80,7 +80,7 @@ function M.manage_comments(cfg)
       vim.notify("Comment removed")
     end,
     function(c, idx)  -- on_edit
-      local new_text = vim.fn.trim(vim.fn.input("Edit comment: ", c.text))
+      local new_text = vim.fn.trim(vim.fn.input("Edit " .. cfg.input_prompt, c.text))
       if new_text == "" then return end
       local lnum = lnum_from_ref(c.ref)
       if lnum then marks.clear(c.path, lnum) end

@@ -34,7 +34,9 @@ https://github.com/user-attachments/assets/5ec849bb-c1c2-42a7-99da-6bef9480478c
       manage = "<leader>rl",
       export = "<leader>ry",
     },
-    highlight = "DiagnosticWarn",
+    highlight    = "DiagnosticWarn",
+    input_prompt = "",
+    preamble     = "Notes:",
   },
 }
 ```
@@ -64,14 +66,16 @@ All keys are configurable. Set any keymap to `false` to disable it.
 `<leader>ry` copies to the system clipboard (`+` register):
 
 ```
-Please address the following code review comments:
+Notes:
 
 /abs/path/to/src/api/handler.ts:42
-Comment: fix the off-by-one error here
+fix the off-by-one error here
 
 /abs/path/to/src/utils/helpers.ts:100-110
-Comment: extract this block into a helper function
+extract this block into a helper function
 ```
+
+The preamble and input label are configurable, so you can repurpose the plugin for any annotation workflow — bug notes, TODOs, feedback, etc.
 
 ## Configuration
 
@@ -83,9 +87,13 @@ require("review-prompt").setup({
     export = "<leader>ry",  -- n; set to false to disable
   },
   -- stdpath("data")/review-prompt/<repo-slug>.json
-  data_dir  = vim.fn.stdpath("data") .. "/review-prompt",
+  data_dir     = vim.fn.stdpath("data") .. "/review-prompt",
   -- any highlight group to link ReviewComment virtual text to
-  highlight = "DiagnosticWarn",
+  highlight    = "DiagnosticWarn",
+  -- label shown in the input prompt when adding/editing a comment
+  input_prompt = "",
+  -- header line prepended to the exported prompt
+  preamble     = "Notes:",
 })
 ```
 
