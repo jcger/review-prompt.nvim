@@ -1,8 +1,10 @@
 # review-prompt.nvim
 
-Collect code review comments while reading a diff, then export them as a single AI-ready prompt. Zero dependencies.
+Like [tuicr](https://github.com/agavra/tuicr) or [hunk](https://github.com/modem-dev/hunk), but inside Neovim.
 
-The review keys follow [tuicr](https://github.com/agavra/tuicr): comment, move between notes, copy the review, and clear it only when you mean to.
+Leave a comment on whatever you want in the editor. A line, a range, a file, or a note with no line. Copy the comments as one prompt when you are done. Zero dependencies.
+
+The review keys follow tuicr: comment, move between notes, copy the review, and clear it only when you mean to.
 
 ## Features
 
