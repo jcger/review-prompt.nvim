@@ -1,73 +1,100 @@
 local M = {}
 
-local function load_modules()
-  return {
-    config = require("review-prompt.config"),
-    state = require("review-prompt.state"),
-    persist = require("review-prompt.persist"),
-    marks = require("review-prompt.marks"),
-    core = require("review-prompt.core"),
-  }
+local function cfg()
+  return require("review-prompt.config").options
 end
 
 function M.setup(opts)
   vim.g.review_prompt_did_setup = true
 
-  local m = load_modules()
-  m.config.options = vim.tbl_deep_extend("force", m.config.defaults, opts or {})
-  local cfg = m.config.options
+  local config = require("review-prompt.config")
+  local state = require("review-prompt.state")
+  local marks = require("review-prompt.marks")
+  local core = require("review-prompt.core")
+  local commands = require("review-prompt.commands")
+  local mode = require("review-prompt.mode")
 
-  m.marks.setup(cfg.highlight)
+  config.options = vim.tbl_deep_extend("force", config.defaults, opts or {})
+  local options = config.options
+
+  marks.setup(options.highlight)
 
   local aug = vim.api.nvim_create_augroup("ReviewPrompt", { clear = true })
 
-  local function reload()
-    local loaded = m.persist.load(cfg.data_dir)
-    if loaded then
-      m.marks.clear_all()
-      m.state.comments = loaded
-    end
-    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_buf_is_loaded(bufnr) then
-        m.marks.replay_for_buf(bufnr, m.state.comments)
-      end
-    end
+  local function load()
+    core.load({ quiet = true })
   end
 
-  vim.api.nvim_create_autocmd("VimEnter", { group = aug, once = true, callback = reload })
-  vim.api.nvim_create_autocmd("VimResume", { group = aug, callback = reload })
+  if vim.v.vim_did_enter == 1 then
+    load()
+  else
+    vim.api.nvim_create_autocmd("VimEnter", {
+      group = aug,
+      once = true,
+      callback = load,
+    })
+  end
+  vim.api.nvim_create_autocmd("VimResume", { group = aug, callback = load })
   vim.api.nvim_create_autocmd("BufEnter", {
     group = aug,
     callback = function(ev)
-      m.marks.replay_for_buf(ev.buf, m.state.comments)
+      marks.redraw_buf(ev.buf, state.comments)
+    end,
+  })
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    group = aug,
+    callback = function()
+      core.on_cursor_moved()
     end,
   })
 
-  local function map(mode, key, fn, desc)
+  local function map(mapmode, key, fn, desc)
     if key and key ~= false then
-      vim.keymap.set(mode, key, fn, { desc = desc })
+      vim.keymap.set(mapmode, key, fn, { desc = desc, silent = true })
     end
   end
 
-  map({ "n", "v" }, cfg.keymaps.add, function()
-    m.core.add_comment(cfg)
-  end, "Review: Add comment")
-  map("n", cfg.keymaps.manage, function()
-    m.core.manage_comments(cfg)
-  end, "Review: Manage comments")
-  map("n", cfg.keymaps.export, function()
-    m.core.copy_and_clear(cfg)
-  end, "Review: Copy as AI prompt")
+  local keys = type(options.keymaps) == "table" and options.keymaps or {}
+  map({ "n", "x" }, keys.add, function() core.comment() end, "Review: Add comment")
+  map("n", keys.manage, function() core.summary() end, "Review: Summary")
+  map("n", keys.export, function() core.clip(false) end, "Review: Copy review")
+  map("n", keys.mode, function() mode.toggle() end, "Review: Toggle review mode")
+
+  commands.register()
+
+  if vim.g.review_prompt_mode == 1 then
+    mode.enable({ quiet = true })
+  end
 end
 
-M.add_comment = function()
-  require("review-prompt.core").add_comment(require("review-prompt.config").options)
+function M.status()
+  if vim.g.review_prompt_mode == 1 then
+    return "%#ReviewPromptMode# REVIEW %*"
+  end
+  return ""
 end
-M.manage_comments = function()
-  require("review-prompt.core").manage_comments(require("review-prompt.config").options)
+
+local function core()
+  return require("review-prompt.core")
 end
-M.copy_and_clear = function()
-  require("review-prompt.core").copy_and_clear(require("review-prompt.config").options)
-end
+
+function M.comment() core().comment() end
+function M.file_comment() core().file() end
+function M.note() core().note() end
+function M.delete_at_cursor() core().delete_at_cursor() end
+function M.edit_at_cursor(where) core().edit(nil, where) end
+function M.summary() core().summary() end
+function M.clip(opts) core().clip(opts and opts.clear) end
+function M.yank() core().yank_at_cursor() end
+function M.next() core().step(1) end
+function M.prev() core().step(-1) end
+function M.clear(opts) core().clear(opts and opts.force) end
+function M.reload() core().load() end
+function M.help() require("review-prompt.help").toggle() end
+function M.toggle_mode() require("review-prompt.mode").toggle() end
+
+function M.add_comment() M.comment() end
+function M.manage_comments() M.summary() end
+function M.copy_and_clear() core().clip(true) end
 
 return M
