@@ -26,7 +26,7 @@ local function chrome(types, idx, opts)
   if opts.line_label and opts.line_label ~= "" then
     table.insert(title, { opts.line_label .. " ", "Comment" })
   end
-  local hint = "Enter save · Ctrl-j line · Esc cancel"
+  local hint = "Enter save · Esc move · q cancel"
   if #types > 0 then hint = "Tab type · " .. hint end
   local border = opts.attached and { "├", "─", "╮", "│", "╯", "─", "╰", "│" } or "rounded"
   return title, " " .. hint .. " ", border
@@ -215,18 +215,22 @@ function M.open(opts)
   map("i", "<C-j>", newline)
   map("i", "<S-CR>", newline)
   map("i", "<C-CR>", newline)
-  map("i", "<Esc>", cancel)
-  map("i", "<C-c>", cancel)
-  map("n", "<Esc>", cancel)
+  map("i", "<Esc>", function() vim.cmd("stopinsert") end)
+  map("i", "<C-c>", function() vim.cmd("stopinsert") end)
   map("n", "q", cancel)
-  map("n", "i", function() vim.cmd("startinsert") end)
-  map("n", "a", function() vim.cmd("startinsert") end)
   if #types > 0 then
     map("i", "<Tab>", function() set_idx(idx + 1) end)
     map("n", "<Tab>", function() set_idx(idx + 1) end)
     map("i", "<S-Tab>", function() set_idx(idx - 1) end)
     map("n", "<S-Tab>", function() set_idx(idx - 1) end)
   end
+
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+    buffer = buf,
+    callback = function()
+      if active and not active.done then apply_chrome() end
+    end,
+  })
 
   vim.api.nvim_create_autocmd("WinClosed", {
     pattern = tostring(win),
