@@ -56,6 +56,8 @@ function M.setup(opts)
 
   local keys = type(options.keymaps) == "table" and options.keymaps or {}
   map({ "n", "x" }, keys.add, function() core.comment() end, "Review: Add comment")
+  map("n", keys.edit, function() core.edit(nil, "start") end, "Review: Edit comment")
+  map("n", keys.delete, function() core.delete_at_cursor() end, "Review: Delete comment")
   map("n", keys.manage, function() core.summary() end, "Review: Summary")
   map("n", keys.export, function() core.clip(false) end, "Review: Copy review")
   map("n", keys.mode, function() mode.toggle() end, "Review: Toggle review mode")

@@ -4,8 +4,6 @@ Collect code review comments while reading a diff, then export them as a single 
 
 The review keys follow [tuicr](https://github.com/agavra/tuicr): comment, move between notes, copy the review, and clear it only when you mean to.
 
-https://github.com/user-attachments/assets/5ec849bb-c1c2-42a7-99da-6bef9480478c
-
 ## Features
 
 - Comment on a line, a visual range, a whole file, or the review

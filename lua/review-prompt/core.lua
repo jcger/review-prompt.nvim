@@ -114,12 +114,31 @@ function M.target_from_view()
   return { kind = "range", path = path, lnum = s, end_lnum = e }
 end
 
+local function line_label(existing, spec)
+  local kind = spec.kind or (existing and existing.kind)
+  local lnum = spec.lnum or (existing and existing.lnum)
+  local end_lnum = spec.end_lnum or (existing and existing.end_lnum)
+  if kind == "file" then return "file", false end
+  if kind == "review" then return "note", false end
+  if end_lnum and lnum and end_lnum ~= lnum then
+    return string.format("L%d-%d", lnum, end_lnum), true
+  end
+  if lnum then return string.format("L%d", lnum), true end
+  return nil, false
+end
+
 local function open_box(existing, spec)
   spec = spec or {}
   local options = cfg()
   local types = model.normalize_types(options.comment_types)
   vim.schedule(function()
+    local function clear_editing()
+      if not state.editing then return end
+      state.editing = nil
+      marks.redraw_all(state.comments)
+    end
     local function on_save(text, typ)
+      state.editing = nil
       if existing then
         existing.text = text
         existing.type = (typ and typ ~= "") and typ or nil
@@ -143,13 +162,24 @@ local function open_box(existing, spec)
       on_save(text, existing and existing.type or nil)
       return
     end
+    if existing then
+      state.editing = existing
+      marks.redraw_all(state.comments)
+      vim.cmd("redraw")
+    end
+    local label, attached = line_label(existing, spec)
     comment_box.open({
       text = existing and existing.text or "",
       types = types,
       type = existing and existing.type or nil,
       cursor = spec.cursor or "start",
-      label = options.input_prompt,
+      action = existing and "Edit" or "Add",
+      line_label = label,
+      attached = attached,
+      anchor_win = vim.api.nvim_get_current_win(),
+      screen_row = vim.fn.winline(),
       on_save = on_save,
+      on_close = clear_editing,
     })
   end)
 end
@@ -394,9 +424,9 @@ function M.command(opts)
   elseif verb == "delete" then
     M.delete_at_cursor()
   elseif verb == "edit" then
-    M.edit(nil, "start")
+    M.edit(nil, "end")
   elseif verb == "clip" then
-    M.clip(force)
+    M.clip(false)
   elseif verb == "yank" then
     M.yank_at_cursor()
   elseif verb == "next" then

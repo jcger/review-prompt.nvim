@@ -17,17 +17,68 @@ local function current_type(types, idx)
   return types[idx].id
 end
 
-local function title_for(types, idx, width, base)
-  local label = (base and base ~= "") and base or "Comment"
-  if #label > 24 then label = label:sub(1, 24) end
+local function chrome(types, idx, opts)
+  local action = opts.action or "Add"
+  local title = { { " " .. action .. " ", "FloatTitle" } }
   if idx > 0 and types[idx] then
-    label = "[" .. types[idx].id .. "]"
+    table.insert(title, { "[" .. types[idx].id .. "] ", "ReviewPrompt" })
   end
-  local hint = " · Enter save · Esc cancel"
-  if #types > 0 then hint = " · Tab type" .. hint end
-  local full = label .. hint
-  if width and #full > width - 2 then return label end
-  return full
+  if opts.line_label and opts.line_label ~= "" then
+    table.insert(title, { opts.line_label .. " ", "Comment" })
+  end
+  local hint = "Enter save · Ctrl-j line · Esc cancel"
+  if #types > 0 then hint = "Tab type · " .. hint end
+  local border = opts.attached and { "├", "─", "╮", "│", "╯", "─", "╰", "│" } or "rounded"
+  return title, " " .. hint .. " ", border
+end
+
+local function geometry(anchor_win, screen_row, height, border, title, footer)
+  local ok = anchor_win and vim.api.nvim_win_is_valid(anchor_win)
+  if not ok then
+    local width = math.min(72, math.max(28, vim.o.columns - 4))
+    local row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1)
+    local col = math.max(0, math.floor((vim.o.columns - width) / 2))
+    return {
+      relative = "editor",
+      width = width,
+      height = height,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = border,
+      title = title,
+      title_pos = "left",
+      footer = footer,
+      footer_pos = "right",
+      zindex = 60,
+    }
+  end
+
+  local info = vim.fn.getwininfo(anchor_win)[1] or {}
+  local textoff = info.textoff or 0
+  local win_w = vim.api.nvim_win_get_width(anchor_win)
+  local win_h = vim.api.nvim_win_get_height(anchor_win)
+  local width = math.min(80, math.max(28, win_w - textoff - 1))
+  local row = screen_row or 1
+  local chrome_h = 2
+  if row + height + chrome_h > win_h then
+    row = math.max(0, (screen_row or 1) - 1 - height - chrome_h)
+  end
+  return {
+    relative = "win",
+    win = anchor_win,
+    row = row,
+    col = textoff,
+    width = width,
+    height = height,
+    style = "minimal",
+    border = border,
+    title = title,
+    title_pos = "left",
+    footer = footer,
+    footer_pos = "right",
+    zindex = 60,
+  }
 end
 
 function M.open(opts)
@@ -65,28 +116,34 @@ function M.open(opts)
   vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = "reviewprompt-comment"
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, split_lines(opts.text or ""))
+  local body = split_lines(opts.text or "")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, body)
 
-  local width = math.min(78, math.max(24, vim.o.columns - 4))
-  local height = math.min(12, math.max(4, vim.o.lines - 6))
-  local row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1)
-  local col = math.max(0, math.floor((vim.o.columns - width) / 2))
-  local win_opts = {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    style = "minimal",
-    border = "rounded",
-    title = title_for(types, idx, width, opts.label),
-    title_pos = "center",
-    zindex = 60,
-  }
+  local function body_height()
+    local n = #vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    return math.min(8, math.max(1, n))
+  end
+
+  local title, footer, border = chrome(types, idx, opts)
+  local win_opts = geometry(opts.anchor_win, opts.screen_row, body_height(), border, title, footer)
   local win = vim.api.nvim_open_win(buf, true, win_opts)
   vim.api.nvim_set_option_value("wrap", true, { win = win })
+  vim.api.nvim_set_option_value(
+    "winhighlight",
+    "NormalFloat:Normal,FloatBorder:ReviewPromptBorder,FloatTitle:Normal,FloatFooter:Comment",
+    { win = win }
+  )
 
   active = { buf = buf, win = win, done = false }
+
+  local function apply_chrome()
+    title, footer, border = chrome(types, idx, opts)
+    win_opts = geometry(opts.anchor_win, opts.screen_row, body_height(), border, title, footer)
+    win_opts.style = nil
+    if vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_set_config, win, win_opts)
+    end
+  end
 
   local function close_ui()
     local state = active
@@ -101,6 +158,11 @@ function M.open(opts)
     end
   end
 
+  local function finish(saved)
+    if saved and opts.on_save then opts.on_save(saved.text, saved.typ) end
+    if opts.on_close then opts.on_close() end
+  end
+
   local function save()
     if not active or active.done then return end
     local text = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
@@ -111,15 +173,15 @@ function M.open(opts)
     end
     active.done = true
     local typ = current_type(types, idx)
-    local cb = opts.on_save
     close_ui()
-    if cb then cb(text, typ) end
+    finish({ text = text, typ = typ })
   end
 
   local function cancel()
     if not active or active.done then return end
     active.done = true
     close_ui()
+    finish()
   end
 
   local function newline()
@@ -132,6 +194,7 @@ function M.open(opts)
     table.insert(lines, row0 + 1, right)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
     vim.api.nvim_win_set_cursor(win, { row0 + 1, 0 })
+    apply_chrome()
   end
 
   local function set_idx(next_idx)
@@ -139,10 +202,7 @@ function M.open(opts)
     if next_idx > #types then next_idx = 0 end
     if next_idx < 0 then next_idx = #types end
     idx = next_idx
-    win_opts.title = title_for(types, idx, win_opts.width, opts.label)
-    if vim.api.nvim_win_is_valid(win) then
-      pcall(vim.api.nvim_win_set_config, win, win_opts)
-    end
+    apply_chrome()
   end
 
   local map = function(mode, lhs, fn)
@@ -179,11 +239,12 @@ function M.open(opts)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local last = math.max(1, #lines)
   if opts.cursor == "end" then
-    vim.api.nvim_win_set_cursor(win, { last, #lines[last] })
+    vim.api.nvim_win_set_cursor(win, { last, math.max(0, #lines[last]) })
+    vim.cmd("startinsert!")
   else
     vim.api.nvim_win_set_cursor(win, { 1, 0 })
+    vim.cmd("startinsert")
   end
-  vim.cmd("startinsert")
 end
 
 return M

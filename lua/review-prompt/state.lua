@@ -1,1 +1,1 @@
-return { comments = {} }
+return { comments = {}, editing = nil }

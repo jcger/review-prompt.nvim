@@ -59,9 +59,8 @@ function M.lines()
     "  :Review file         Comment on this file",
     "  :Review note         Review-level note",
     "  :Review delete       Delete the comment on this line",
-    "  :Review edit         Edit the comment on this line",
+    "  :Review edit         Edit the comment, cursor at the end",
     "  :Review clip         Copy the review",
-    "  :Review clip!        Copy the review and clear it",
     "  :Review yank         Copy the comment on this line",
     "  :Review next         Next comment",
     "  :Review prev         Previous comment",
@@ -80,12 +79,15 @@ function M.lines()
     end
   end
   mapline(km.add, "Comment")
+  mapline(km.edit, "Edit the comment on this line")
+  mapline(km.delete, "Delete the comment on this line")
   mapline(km.manage, "Summary")
   mapline(km.export, "Copy the review")
   mapline(km.mode, "Toggle review mode")
   vim.list_extend(lines, {
     "",
     "Comment box",
+    "  The box opens under the line.",
     "  Enter / Ctrl-s       Save",
     "  Ctrl-j / Shift-Enter New line",
     "  Tab / Shift-Tab      Cycle comment type",
