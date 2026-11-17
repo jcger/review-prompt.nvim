@@ -61,6 +61,7 @@ function M.setup(opts)
   map("n", keys.manage, function() core.summary() end, "Review: Summary")
   map("n", keys.export, function() core.clip(false) end, "Review: Copy review")
   map("n", keys.mode, function() mode.toggle() end, "Review: Toggle review mode")
+  map("n", keys.clear, function() core.clear({ force = true }) end, "Review: Clear comments")
 
   commands.register()
 

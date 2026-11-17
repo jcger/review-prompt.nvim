@@ -66,6 +66,7 @@ These stay out of the way of normal editing:
 | `<leader>rl` | n     | Open the summary                            |
 | `<leader>ry` | n     | Copy the review to the clipboard            |
 | `<leader>rr` | n     | Toggle review mode                          |
+| `<leader>rx` | n     | Clear all review comments                   |
 
 `<leader>ry` copies and leaves the comments in place. `:Review clip!` copies and then clears them.
 
@@ -162,6 +163,7 @@ require("review-prompt").setup({
     manage = "<leader>rl", -- summary
     export = "<leader>ry", -- copy, does not clear
     mode   = "<leader>rr", -- toggle review mode
+    clear  = "<leader>rx", -- clear all comments without asking
   },
   review_leader = ";", -- with review_maps.note, this is ;c
   review_maps = {

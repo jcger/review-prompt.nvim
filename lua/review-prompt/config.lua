@@ -8,6 +8,7 @@ M.defaults = {
     manage = "<leader>rl",
     export = "<leader>ry",
     mode = "<leader>rr",
+    clear = "<leader>rx",
   },
   -- Prefix for the review-level note while review mode is on. `;c` matches tuicr.
   review_leader = ";",
